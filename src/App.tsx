@@ -7,6 +7,7 @@ const options = new Array(25)
     label: faker.name.findName(),
     value: i,
     isDisabled: Boolean(Math.round(Math.random())),
+    extra: `ExtraProp${i}`,
   }))
   .sort((a, b) => (a.label.toLowerCase() > b.label.toLowerCase() ? 1 : -1));
 

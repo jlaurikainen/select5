@@ -10,7 +10,6 @@ import BaseSelect, {
   GroupBase,
   MenuListProps,
   MenuProps,
-  OnChangeValue,
   OptionProps,
   Options,
   Props,
@@ -21,6 +20,29 @@ import { FixedSizeList } from "react-window";
 import styled from "styled-components";
 
 const OPTION_HEIGHT = 32;
+
+function reduceOptionGroups<Option>(options: GroupBase<Option>[]) {
+  return options.reduce(
+    (allOptions: readonly Option[], currentGroup) => [
+      ...allOptions,
+      ...currentGroup.options,
+    ],
+    []
+  );
+}
+
+function filterSelectableOptions<Option>(
+  options: readonly Option[],
+  getOptionLabel: (option: Option) => string,
+  inputValue: string
+) {
+  return options.filter((option: Option & { isDisabled?: boolean }) => {
+    return (
+      !option.isDisabled &&
+      getOptionLabel(option).toLowerCase().includes(inputValue.toLowerCase())
+    );
+  });
+}
 
 const SingleOption = <
   Option,
@@ -83,10 +105,39 @@ const Menu = <
   props: MenuProps<Option, IsMulti, Group>
 ) => {
   const [allSelected, setAllSelected] = useState(false);
-  const { isMulti, options } = props;
+  const {
+    clearValue,
+    getValue,
+    isMulti,
+    options,
+    selectProps: { inputValue, getOptionLabel },
+    setValue,
+  } = props;
 
-  const areOptionsGrouped =
+  const currentValue = getValue();
+  const optionsAreGrouped =
     options !== undefined && options.length > 0 && "options" in options[0];
+
+  const selectionState = useCallback(() => {
+    const getSelectableOptions = () => {
+      if (optionsAreGrouped) {
+        const reducedGroups = reduceOptionGroups(options as Group[]);
+        return filterSelectableOptions(
+          reducedGroups,
+          getOptionLabel,
+          inputValue
+        );
+      }
+
+      return options;
+    };
+
+    const selectableOptions = getSelectableOptions();
+
+    return { selectableOptions };
+  }, [currentValue, options]);
+
+  const { selectableOptions } = selectionState();
 
   return (
     <components.Menu {...props}>
@@ -110,7 +161,15 @@ const MenuList = <
 >(
   props: MenuListProps<Option, IsMulti, Group>
 ) => {
-  const { children, getValue, isMulti, maxHeight, options, setValue } = props;
+  const {
+    children,
+    getValue,
+    isMulti,
+    maxHeight,
+    options,
+    selectProps: { getOptionLabel, inputValue },
+    setValue,
+  } = props;
 
   if (!children) return null;
 
@@ -118,28 +177,33 @@ const MenuList = <
     useState<FixedSizeList<HTMLElement> | null>(null);
 
   const groupSelectionState = useCallback(
-    (currentValue: Options<Option>, children: JSX.Element[]) => {
-      const optionsInGroup: Options<Option> = children.map(
+    (currentValue: Options<Option>, children: JSX.Element | JSX.Element[]) => {
+      if (!Array.isArray(children)) {
+        return {
+          optionsInGroup: [],
+          selectableGroupOptions: [],
+          selectedGroupOptions: [],
+          allGroupOptionsSelected: true,
+        };
+      }
+
+      const optionsInGroup: Option[] = (children as JSX.Element[]).map(
         (optionElement) => optionElement.props.data
       );
 
-      const selectableGroupOptions: Options<Option> = children
-        .filter(
-          (optionElement) =>
-            !optionElement.props.data.isDisabled &&
-            !currentValue.includes(optionElement.props.data)
-        )
-        .map((optionElement) => optionElement.props.data);
+      const selectableGroupOptions = filterSelectableOptions(
+        optionsInGroup,
+        getOptionLabel,
+        inputValue
+      );
 
-      const selectedGroupOptions: Options<Option> = children
-        .filter((optionElement) =>
-          currentValue.includes(optionElement.props.data)
-        )
-        .map((optionElement) => optionElement.props.data);
+      const selectedGroupOptions = optionsInGroup.filter((option) =>
+        currentValue.includes(option)
+      );
 
-      const allGroupOptionsSelected = selectableGroupOptions.every((option) => {
-        return currentValue.includes(option);
-      });
+      const allGroupOptionsSelected = selectableGroupOptions.every((option) =>
+        currentValue.includes(option)
+      );
 
       return {
         optionsInGroup,
@@ -167,6 +231,10 @@ const MenuList = <
     };
 
     if (optionsAreGrouped) {
+      if (!Array.isArray(children)) {
+        return [children];
+      }
+
       return Children.map(children as JSX.Element[], (optionGroup, index) => {
         if (isMulti) {
           const currentlySelectedOptions = getValue();
@@ -293,6 +361,7 @@ function Select<
   return (
     <BaseSelect
       {...props}
+      backspaceRemovesValue={false}
       components={{
         Option: isMulti ? MultiOption : SingleOption,
         Menu,
@@ -302,7 +371,6 @@ function Select<
         ValueContainer,
         ...components,
       }}
-      placeholder="plgjyhijak"
       hideSelectedOptions={false}
       inputValue={inputValue}
       onInputChange={(value, action) => {
