@@ -1,12 +1,20 @@
 import React, {
   Children,
+  createContext,
+  Dispatch,
+  FC,
+  forwardRef,
+  SetStateAction,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
+  useReducer,
   useState,
 } from "react";
 import BaseSelect, {
   components,
+  createFilter,
   GroupBase,
   MenuListProps,
   MenuProps,
@@ -181,6 +189,12 @@ const Menu = <
     );
   };
 
+  const { showSelected, setShowSelected } = useContext(SelectContext);
+
+  const showSelectedHandler = () => {
+    setShowSelected(!showSelected);
+  };
+
   const selectAllCheckboxState = () => {
     if (allOptionsSelected) return "X";
 
@@ -192,10 +206,14 @@ const Menu = <
   return (
     <components.Menu {...props}>
       {isMulti && (
-        <div>
-          <button onClick={selectAllHandler}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <button disabled={showSelected} onClick={selectAllHandler}>
             {selectAllCheckboxState()}
             Select all
+          </button>
+          <button onClick={showSelectedHandler}>
+            {showSelected ? "0" : "X"}
+            Show selected
           </button>
         </div>
       )}
@@ -265,6 +283,8 @@ const MenuList = <
     [children]
   );
 
+  const { showSelected } = useContext(SelectContext);
+
   const childArray = useMemo(() => {
     const optionsAreGrouped =
       options !== undefined && options.length > 0 && "options" in options[0];
@@ -301,6 +321,7 @@ const MenuList = <
 
           return [
             <MultiGroupHeading
+              disabled={showSelected}
               onClick={() => {
                 if (!allGroupOptionsSelected) {
                   setValue(
@@ -399,6 +420,15 @@ const ValueContainer = <
   );
 };
 
+interface SelectContextState {
+  showSelected: boolean;
+  setShowSelected: Dispatch<SetStateAction<boolean>>;
+}
+
+const SelectContext = createContext<SelectContextState>(
+  {} as SelectContextState
+);
+
 function Select<
   Option,
   IsMulti extends boolean = false,
@@ -407,69 +437,92 @@ function Select<
   const { components, isMulti, styles, theme: themeProps } = props;
 
   const [inputValue, setInputValue] = useState("");
+  const [showSelected, setShowSelected] = useState(false);
+
+  const [internalValue, setInternalValue] = useState<Option | Option[]>();
 
   return (
-    <BaseSelect
-      {...props}
-      backspaceRemovesValue={false}
-      components={{
-        Option: isMulti ? MultiOption : SingleOption,
-        Menu,
-        MenuList,
-        MultiValue: () => null,
-        MultiValueContainer: () => null,
-        ValueContainer,
-        ...components,
-      }}
-      hideSelectedOptions={false}
-      inputValue={inputValue}
-      onInputChange={(value, action) => {
-        if (action.action === "input-change") {
-          setInputValue(value);
-          return;
-        }
-      }}
-      styles={{
-        indicatorsContainer: (provided) => ({
-          ...provided,
-          height: 32,
-        }),
-        container: (provided) => ({
-          ...provided,
-          fontFamily: "sans-serif",
-          fontSize: 16,
-        }),
-        control: (provided, state) => ({
-          ...provided,
-          borderColor: state.isFocused ? "blue" : "gray",
-          boxShadow: state.isFocused ? "0 2px 4px rgba(0,0,255,0.2)" : "none",
-        }),
-        menu: (provided) => ({
-          ...provided,
-          boxShadow: "0 2px 8px 2px rgba(0,0,0,0.2)",
-        }),
-        option: (provided, state) => ({
-          ...provided,
-          display: "flex",
-          alignItems: "center",
-          padding: "0px 16px",
-          height: OPTION_HEIGHT,
-          backgroundColor: state.isFocused ? "lightblue" : "white",
-          color: state.isDisabled ? "#999999" : "#333333",
-        }),
-        ...styles,
-      }}
-      theme={(theme: Theme) => ({
-        ...theme,
-        borderRadius: 4,
-        spacing: {
-          ...theme.spacing,
-          controlHeight: OPTION_HEIGHT,
-          menuGutter: 4,
-        },
-        ...themeProps,
-      })}
-    />
+    <SelectContext.Provider value={{ showSelected, setShowSelected }}>
+      <BaseSelect
+        {...props}
+        backspaceRemovesValue={false}
+        components={{
+          Option: isMulti ? MultiOption : SingleOption,
+          Menu,
+          MenuList,
+          MultiValue: () => null,
+          MultiValueContainer: () => null,
+          ValueContainer,
+          ...components,
+        }}
+        filterOption={(option, input) => {
+          if (showSelected && isMulti) {
+            createFilter();
+
+            return (internalValue as readonly Option[])?.includes(option.data);
+          }
+
+          return option.label.toLowerCase().includes(input.toLowerCase());
+        }}
+        hideSelectedOptions={false}
+        inputValue={inputValue}
+        onInputChange={(value, action) => {
+          if (action.action === "input-change") {
+            setInputValue(value);
+            return;
+          }
+        }}
+        onChange={(e) => {
+          setInternalValue(e as Option | Option[]);
+          props.onChange?.(e, { action: "select-option", option: e as any });
+        }}
+        onMenuClose={() => {
+          setShowSelected(false);
+          props.onMenuClose?.();
+        }}
+        styles={{
+          indicatorsContainer: (provided) => ({
+            ...provided,
+            height: 32,
+          }),
+          container: (provided) => ({
+            ...provided,
+            fontFamily: "sans-serif",
+            fontSize: 16,
+          }),
+          control: (provided, state) => ({
+            ...provided,
+            borderColor: state.isFocused ? "blue" : "gray",
+            boxShadow: state.isFocused ? "0 2px 4px rgba(0,0,255,0.2)" : "none",
+          }),
+          menu: (provided) => ({
+            ...provided,
+            boxShadow: "0 2px 8px 2px rgba(0,0,0,0.2)",
+          }),
+          option: (provided, state) => ({
+            ...provided,
+            display: "flex",
+            alignItems: "center",
+            padding: "0px 16px",
+            height: OPTION_HEIGHT,
+            backgroundColor: state.isFocused ? "lightblue" : "white",
+            color: state.isDisabled ? "#999999" : "#333333",
+          }),
+          ...styles,
+        }}
+        menuIsOpen
+        theme={(theme: Theme) => ({
+          ...theme,
+          borderRadius: 4,
+          spacing: {
+            ...theme.spacing,
+            controlHeight: OPTION_HEIGHT,
+            menuGutter: 4,
+          },
+          ...themeProps,
+        })}
+      />
+    </SelectContext.Provider>
   );
 }
 
