@@ -6,6 +6,9 @@
     "build": "tsc && vite build",
     "serve": "vite preview"
   },
+  "prettier": {
+    "printWidth": 80
+  },
   "dependencies": {
     "@types/faker": "^5.5.9",
     "@types/react-window": "^1.8.5",
