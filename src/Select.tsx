@@ -104,7 +104,6 @@ const Menu = <
 >(
   props: MenuProps<Option, IsMulti, Group>
 ) => {
-  const [allSelected, setAllSelected] = useState(false);
   const {
     clearValue,
     getValue,
@@ -119,32 +118,83 @@ const Menu = <
     options !== undefined && options.length > 0 && "options" in options[0];
 
   const selectionState = useCallback(() => {
-    const getSelectableOptions = () => {
-      if (optionsAreGrouped) {
-        const reducedGroups = reduceOptionGroups(options as Group[]);
-        return filterSelectableOptions(
-          reducedGroups,
-          getOptionLabel,
-          inputValue
-        );
-      }
+    if (optionsAreGrouped) {
+      const optionsInGroups = reduceOptionGroups(options as Group[]);
 
-      return options;
+      const selectableOptions = filterSelectableOptions(
+        optionsInGroups,
+        getOptionLabel,
+        inputValue
+      );
+
+      const selectedOptions = optionsInGroups.filter((option) =>
+        currentValue.includes(option)
+      );
+
+      const allOptionsSelected = selectableOptions.every((option) =>
+        currentValue.includes(option)
+      );
+
+      return {
+        options: optionsInGroups,
+        selectableOptions,
+        selectedOptions,
+        allOptionsSelected,
+      };
+    }
+
+    const selectableOptions = filterSelectableOptions(
+      options as Option[],
+      getOptionLabel,
+      inputValue
+    );
+
+    const selectedOptions = (options as Option[]).filter((option) =>
+      currentValue.includes(option)
+    );
+
+    const allOptionsSelected = selectableOptions.every((option) =>
+      currentValue.includes(option)
+    );
+
+    return {
+      options,
+      selectableOptions,
+      selectedOptions,
+      allOptionsSelected,
     };
-
-    const selectableOptions = getSelectableOptions();
-
-    return { selectableOptions };
   }, [currentValue, options]);
 
-  const { selectableOptions } = selectionState();
+  const { selectableOptions, selectedOptions, allOptionsSelected } =
+    selectionState();
+
+  const selectAllHandler = () => {
+    if (allOptionsSelected) {
+      clearValue();
+      return;
+    }
+
+    setValue(
+      selectableOptions as any,
+      "select-option",
+      selectableOptions as any
+    );
+  };
+
+  const selectAllCheckboxState = () => {
+    if (allOptionsSelected) return "X";
+
+    if (selectedOptions.length === 0) return "0";
+
+    return "-";
+  };
 
   return (
     <components.Menu {...props}>
       {isMulti && (
         <div>
-          <button onClick={() => setAllSelected(!allSelected)}>
-            {allSelected ? "X" : "0"}
+          <button onClick={selectAllHandler}>
+            {selectAllCheckboxState()}
             Select all
           </button>
         </div>
