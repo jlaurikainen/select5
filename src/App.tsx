@@ -1,4 +1,6 @@
 import faker from "faker/locale/en_GB";
+import { useState } from "react";
+import { MultiValue } from "react-select";
 import Select from "./Select";
 
 const options = new Array(25)
@@ -23,9 +25,17 @@ const groups = [
 ];
 
 function App() {
+  const [value, setValue] = useState<MultiValue<typeof options[0]>>([]);
+
   return (
     <>
-      <Select options={groups} closeMenuOnSelect={false} isMulti />
+      <Select
+        options={groups}
+        closeMenuOnSelect={false}
+        isMulti
+        value={value}
+        onChange={(v) => setValue(v)}
+      />
     </>
   );
 }

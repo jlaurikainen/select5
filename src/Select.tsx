@@ -14,6 +14,7 @@ import BaseSelect, {
 } from "react-select";
 import { FilterOptionOption } from "react-select/dist/declarations/src/filters";
 import {
+  GroupHeading,
   Menu,
   MenuList,
   MultiOption,
@@ -81,6 +82,7 @@ function Select<
           MultiValueContainer: () => null,
           Option: props.isMulti ? MultiOption : SingleOption,
           ValueContainer,
+          GroupHeading,
           ...props.components,
         }}
         filterOption={handleFilter}
