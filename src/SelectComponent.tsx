@@ -1,6 +1,5 @@
 import React, {
   Children,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -14,7 +13,6 @@ import {
   MenuProps,
   OnChangeValue,
   OptionProps,
-  Options,
   ValueContainerProps,
 } from "react-select";
 import { FixedSizeList } from "react-window";
@@ -92,40 +90,30 @@ export const Menu = <
   } = props;
 
   const currentValue = getValue();
-  const optionsAreGrouped = useMemo(
-    () => options?.find((option) => "options" in option),
+  const { showSelected, setShowSelected } = useContext(SelectContext);
+
+  const areOptionsGrouped = useMemo(
+    () => options?.find((option) => "options" in option) !== undefined,
     [options]
   );
 
-  const selectionState = useCallback(() => {
-    const baseOptions = optionsAreGrouped
-      ? reduceOptionGroups(options as Group[])
-      : (options as Option[]);
+  const allBaseOptions = areOptionsGrouped
+    ? reduceOptionGroups(options as Group[])
+    : (options as Option[]);
 
-    const selectableOptions = filterSelectableOptions(
-      baseOptions,
-      getOptionLabel,
-      inputValue
-    );
+  const selectableOptions = filterSelectableOptions(
+    allBaseOptions,
+    getOptionLabel,
+    inputValue
+  );
 
-    const selectedOptions = baseOptions.filter((option) =>
-      currentValue.includes(option)
-    );
+  const selectedOptions = allBaseOptions.filter((option) =>
+    currentValue.includes(option)
+  );
 
-    const allOptionsSelected = selectableOptions.every((option) =>
-      currentValue.includes(option)
-    );
-
-    return {
-      baseOptions,
-      selectableOptions,
-      selectedOptions,
-      allOptionsSelected,
-    };
-  }, [currentValue, options]);
-
-  const { selectableOptions, selectedOptions, allOptionsSelected } =
-    selectionState();
+  const allOptionsSelected = selectableOptions.every((option) =>
+    currentValue.includes(option)
+  );
 
   const selectAllHandler = () => {
     if (allOptionsSelected) {
@@ -142,18 +130,16 @@ export const Menu = <
     );
   };
 
-  const { showSelected, setShowSelected } = useContext(SelectContext);
-
-  const showSelectedHandler = () => {
-    setShowSelected(!showSelected);
-  };
-
   const selectAllCheckboxState = () => {
     if (allOptionsSelected) return "X";
 
     if (selectedOptions.length === 0) return "0";
 
     return "-";
+  };
+
+  const showSelectedHandler = () => {
+    setShowSelected(!showSelected);
   };
 
   return (
@@ -182,11 +168,13 @@ export const MenuList = <
 >(
   props: MenuListProps<Option, IsMulti, Group>
 ) => {
-  const { children, isMulti, maxHeight, options } = props;
+  const { children, maxHeight, options } = props;
+
   const [menuListRef, setMenuListRef] =
     useState<FixedSizeList<HTMLElement> | null>(null);
+
   const optionsAreGrouped = useMemo(
-    () => options?.find((option) => "options" in option),
+    () => options?.find((option) => "options" in option) !== undefined,
     [options]
   );
 
@@ -198,27 +186,17 @@ export const MenuList = <
         return [children];
       }
 
-      return Children.map(children as JSX.Element[], (optionGroup, index) => {
-        if (isMulti) {
-          return [
-            <optionGroup.props.Heading
-              {...optionGroup.props.headingProps}
-              selectProps={optionGroup.props.selectProps}
-              theme={optionGroup.props.theme}
-              getStyles={optionGroup.props.getStyles}
-              cx={optionGroup.props.cx}
-            >
-              {optionGroup.props.label}
-            </optionGroup.props.Heading>,
-            ...optionGroup.props.children,
-          ];
-        }
-
+      return Children.map(children as JSX.Element[], (optionGroup) => {
         return [
-          <SingleGroupHeading>
-            {(options[index] as Group).label}
-            <hr />
-          </SingleGroupHeading>,
+          <optionGroup.props.Heading
+            {...optionGroup.props.headingProps}
+            selectProps={optionGroup.props.selectProps}
+            theme={optionGroup.props.theme}
+            getStyles={optionGroup.props.getStyles}
+            cx={optionGroup.props.cx}
+          >
+            {optionGroup.props.label}
+          </optionGroup.props.Heading>,
           ...optionGroup.props.children,
         ];
       });
@@ -234,7 +212,7 @@ export const MenuList = <
 
   useEffect(() => {
     menuListRef?.scrollToItem(focusedOption);
-  }, [focusedOption]);
+  }, [focusedOption, menuListRef]);
 
   return (
     <FixedSizedListWithStyles
@@ -268,61 +246,65 @@ export const GroupHeading = <
 ) => {
   const {
     data,
-    selectProps: { getOptionLabel, inputValue, onChange, value },
+    selectProps: { getOptionLabel, inputValue, isMulti, onChange, value },
   } = props;
 
-  const currentValue = value !== null ? (value as Option[]) : [];
-  const { showSelected } = useContext(SelectContext);
+  if (isMulti) {
+    const currentValue = value !== null ? (value as Option[]) : [];
+    const { showSelected } = useContext(SelectContext);
 
-  const selectableGroupOptions = filterSelectableOptions(
-    data.options,
-    getOptionLabel,
-    inputValue
-  );
+    const selectableGroupOptions = filterSelectableOptions(
+      data.options,
+      getOptionLabel,
+      inputValue
+    );
 
-  const selectedGroupOptions = data.options.filter((option) =>
-    currentValue.includes(option)
-  );
+    const selectedGroupOptions = data.options.filter((option) =>
+      currentValue.includes(option)
+    );
 
-  const allGroupOptionsSelected = selectableGroupOptions.every((option) =>
-    currentValue.includes(option)
-  );
+    const allGroupOptionsSelected = selectableGroupOptions.every((option) =>
+      currentValue.includes(option)
+    );
 
-  const groupCheckboxState = (
-    selectedGroupOptions: Options<Option>,
-    allGroupOptionsSelected: boolean
-  ) => {
-    if (selectedGroupOptions.length === 0) return "O";
+    const groupCheckboxState = () => {
+      if (selectedGroupOptions.length === 0) return "O";
 
-    if (allGroupOptionsSelected) return "X";
+      if (allGroupOptionsSelected) return "X";
 
-    return "-";
-  };
+      return "-";
+    };
+
+    return (
+      <MultiGroupHeading
+        disabled={showSelected}
+        onClick={() => {
+          if (!allGroupOptionsSelected) {
+            onChange([...currentValue, ...selectableGroupOptions], {
+              action: "select-option",
+              name: "undefined",
+              option: undefined,
+            });
+            return;
+          }
+
+          onChange(
+            currentValue.filter((option) => !data.options.includes(option)),
+            { action: "deselect-option", name: undefined, option: undefined }
+          );
+        }}
+      >
+        <span>{groupCheckboxState()}</span>
+        {data.label}
+      </MultiGroupHeading>
+    );
+  }
 
   return (
-    <MultiGroupHeading
-      disabled={showSelected}
-      onClick={() => {
-        if (!allGroupOptionsSelected) {
-          onChange([...currentValue, ...selectableGroupOptions], {
-            action: "select-option",
-            name: "undefined",
-            option: undefined,
-          });
-          return;
-        }
-
-        onChange(
-          currentValue.filter((option) => !data.options.includes(option)),
-          { action: "deselect-option", name: undefined, option: undefined }
-        );
-      }}
-    >
-      <span>
-        {groupCheckboxState(selectedGroupOptions, allGroupOptionsSelected)}
-      </span>
+    <SingleGroupHeading>
       {data.label}
-    </MultiGroupHeading>
+      <hr />
+    </SingleGroupHeading>
   );
 };
 

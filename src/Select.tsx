@@ -75,6 +75,7 @@ function Select<
       <BaseSelect
         {...props}
         backspaceRemovesValue={false}
+        closeMenuOnSelect={!props.isMulti}
         components={{
           Menu,
           MenuList,

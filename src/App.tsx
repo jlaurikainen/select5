@@ -25,17 +25,9 @@ const groups = [
 ];
 
 function App() {
-  const [value, setValue] = useState<MultiValue<typeof options[0]>>([]);
-
   return (
     <>
-      <Select
-        options={groups}
-        closeMenuOnSelect={false}
-        isMulti
-        value={value}
-        onChange={(v) => setValue(v)}
-      />
+      <Select options={groups[1].options} isMulti={false} />
     </>
   );
 }
