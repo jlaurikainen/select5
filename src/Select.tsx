@@ -8,6 +8,7 @@ import BaseSelect, {
   ActionMeta,
   GroupBase,
   InputActionMeta,
+  MultiValue,
   OnChangeValue,
   Props,
   Theme,
@@ -17,8 +18,7 @@ import {
   GroupHeading,
   Menu,
   MenuList,
-  MultiOption,
-  SingleOption,
+  Option,
   ValueContainer,
 } from "./SelectComponent";
 
@@ -43,51 +43,51 @@ function Select<
     useState<OnChangeValue<Option, IsMulti>>();
   const [showSelected, setShowSelected] = useState(false);
 
-  const handleChange = (
+  function handleChange(
     newValue: OnChangeValue<Option, IsMulti>,
     actionMeta: ActionMeta<Option>
-  ) => {
+  ) {
     setInternalValue(newValue);
     props.onChange?.(newValue, actionMeta);
-  };
+  }
 
-  const handleFilter = (option: FilterOptionOption<Option>, input: string) => {
+  function handleFilter(option: FilterOptionOption<Option>, input: string) {
     if (props.isMulti && showSelected) {
-      return (internalValue as readonly Option[])?.includes(option.data);
+      return (internalValue as MultiValue<Option>)?.includes(option.data);
     }
     return option.label.toLowerCase().includes(input.toLowerCase());
-  };
+  }
 
-  const handleInput = (value: string, action: InputActionMeta) => {
+  function handleInput(value: string, action: InputActionMeta) {
     if (action.action === "input-change") {
       setInputValue(value);
       return;
     }
-  };
+  }
 
-  const handleMenuClose = () => {
+  function handleMenuClose() {
     setShowSelected(false);
     props.onMenuClose?.();
-  };
+  }
 
   return (
     <SelectContext.Provider value={{ showSelected, setShowSelected }}>
       <BaseSelect
         {...props}
         backspaceRemovesValue={false}
-        closeMenuOnSelect={!props.isMulti}
+        closeMenuOnSelect={props.closeMenuOnSelect ?? !props.isMulti}
         components={{
           Menu,
           MenuList,
           MultiValue: () => null,
           MultiValueContainer: () => null,
-          Option: props.isMulti ? MultiOption : SingleOption,
+          Option,
           ValueContainer,
           GroupHeading,
           ...props.components,
         }}
         filterOption={handleFilter}
-        hideSelectedOptions={false}
+        hideSelectedOptions={props.hideSelectedOptions ?? false}
         inputValue={inputValue}
         onInputChange={handleInput}
         onChange={handleChange}
