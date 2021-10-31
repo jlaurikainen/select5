@@ -1,9 +1,7 @@
 import faker from "faker/locale/en_GB";
-import { useState } from "react";
-import { MultiValue } from "react-select";
 import Select from "./Select";
 
-const options = new Array(25)
+const options = new Array(50)
   .fill(true)
   .map((_, i) => ({
     label: faker.name.findName(),
@@ -16,18 +14,18 @@ const options = new Array(25)
 const groups = [
   {
     label: "Group 1",
-    options: options.slice(0, 6),
+    options: options.slice(0, 25),
   },
   {
     label: "Group 2",
-    options: options.slice(13, -1),
+    options: options.slice(26, -1),
   },
 ];
 
 function App() {
   return (
     <>
-      <Select options={groups[1].options} isMulti={false} />
+      <Select options={groups} isMulti={true} />
     </>
   );
 }

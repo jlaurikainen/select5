@@ -1,9 +1,14 @@
 import React, {
   Children,
+  createContext,
+  ReactChild,
   useContext,
   useEffect,
+  CSSProperties,
   useMemo,
   useState,
+  FC,
+  forwardRef,
 } from "react";
 import {
   components,
@@ -15,7 +20,11 @@ import {
   OptionProps,
   ValueContainerProps,
 } from "react-select";
-import { FixedSizeList } from "react-window";
+import {
+  FixedSizeList,
+  FixedSizeListProps,
+  ListChildComponentProps,
+} from "react-window";
 import styled from "styled-components";
 import { OPTION_HEIGHT, SelectContext } from "./Select";
 import {
@@ -145,6 +154,132 @@ export function Menu<
   );
 }
 
+const ListItemWrapper = ({ data, index, style }: any) => {
+  const { RenderComponent, headingIndices } = data;
+
+  if (headingIndices && headingIndices.includes(index)) {
+    return null;
+  }
+
+  return <RenderComponent index={index} style={style} />;
+};
+
+interface VirtualRowProps {
+  style: CSSProperties;
+}
+
+const VirtualRow: FC<VirtualRowProps> = ({ children, style }) => {
+  return <div style={style}>{children}</div>;
+};
+
+interface StickyHeadingContextProps {
+  RenderComponent: React.ComponentType<ListChildComponentProps<HTMLDivElement>>;
+  stickyHeadings: {
+    indices: number[];
+    elements: React.ReactNode[];
+  };
+  scrollOffset: number;
+}
+
+const StickyHeadingContext = createContext<StickyHeadingContextProps>(
+  {} as StickyHeadingContextProps
+);
+
+interface StickyHeadingsListProps {
+  stickyHeadings: {
+    indices: number[];
+    elements: React.ReactNode[];
+  };
+  scrollOffset: number;
+}
+
+const StickyHeadingsList = forwardRef(
+  (
+    {
+      children,
+      scrollOffset,
+      stickyHeadings,
+      ...rest
+    }: FixedSizeListProps & StickyHeadingsListProps,
+    ref: React.Ref<FixedSizeList<unknown>>
+  ) => {
+    return (
+      <StickyHeadingContext.Provider
+        value={{
+          RenderComponent: children,
+          stickyHeadings,
+          scrollOffset,
+        }}
+      >
+        <FixedSizedListWithStyles ref={ref} {...rest}>
+          {({ index, style }) => {
+            return (
+              <ListItemWrapper
+                data={{
+                  RenderComponent: children,
+                  headingIndices: stickyHeadings.indices,
+                }}
+                index={index}
+                style={style}
+              />
+            );
+          }}
+        </FixedSizedListWithStyles>
+      </StickyHeadingContext.Provider>
+    );
+  }
+);
+
+const virtualInnerElement = forwardRef(
+  ({ children, ...rest }: any, ref: React.Ref<HTMLDivElement>) => {
+    const {
+      stickyHeadings: { indices, elements },
+      scrollOffset,
+    } = useContext(StickyHeadingContext);
+
+    return (
+      <div ref={ref} {...rest}>
+        {indices.map((index, idx) => {
+          const topWithOffset = index * OPTION_HEIGHT - scrollOffset;
+
+          const finalTopOffset = topWithOffset < 0 ? 0 : topWithOffset;
+
+          const finalStyles = (): CSSProperties => {
+            if (finalTopOffset > 0) {
+              return {
+                position: "absolute",
+                top: index * OPTION_HEIGHT,
+                left: 0,
+                height: OPTION_HEIGHT,
+                width: "100%",
+                backgroundColor: "white",
+                zIndex: 2,
+              };
+            }
+
+            return {
+              position: "sticky",
+              top: 0,
+              left: 0,
+              height: OPTION_HEIGHT,
+              width: "100%",
+              backgroundColor: "white",
+              zIndex: 2,
+            };
+          };
+
+          return (
+            <VirtualRow key={index} style={finalStyles()}>
+              {elements[idx]}
+            </VirtualRow>
+          );
+        })}
+        {children}
+      </div>
+    );
+  }
+);
+
 export function MenuList<
   Option,
   IsMulti extends boolean = boolean,
@@ -152,8 +287,10 @@ export function MenuList<
 >(props: MenuListProps<Option, IsMulti, Group>) {
   const { children, maxHeight, options } = props;
 
-  const [menuListRef, setMenuListRef] =
-    useState<FixedSizeList<HTMLElement> | null>(null);
+  const [menuListRef, setMenuListRef] = useState<FixedSizeList<unknown> | null>(
+    null
+  );
+  const [scrollOffset, setScrollOffset] = useState(0);
 
   if (!children) return null;
 
@@ -180,7 +317,26 @@ export function MenuList<
     }
 
     return Children.toArray(children);
-  }, [options, children]);
+  }, [children, menuListRef, options]);
+
+  const stickyHeadings = useMemo(() => {
+    const headings: {
+      indices: number[];
+      elements: React.ReactNode[];
+    } = {
+      indices: [],
+      elements: [],
+    };
+
+    childArray.forEach((child) => {
+      if ((child as JSX.Element).type === GroupHeading) {
+        headings.indices.push(childArray.indexOf(child));
+        headings.elements.push(child);
+      }
+    });
+
+    return headings;
+  }, [childArray]);
 
   const focusedOption = Math.max(
     childArray.findIndex((child) => (child as JSX.Element).props.isFocused),
@@ -192,25 +348,31 @@ export function MenuList<
   }, [focusedOption, menuListRef]);
 
   return (
-    <FixedSizedListWithStyles
+    <StickyHeadingsList
       height={
         childArray.length * OPTION_HEIGHT > maxHeight
           ? maxHeight - (maxHeight % OPTION_HEIGHT)
           : childArray.length * OPTION_HEIGHT
       }
+      innerElementType={virtualInnerElement}
       itemCount={childArray.length}
       itemSize={OPTION_HEIGHT}
+      onScroll={(e) => setScrollOffset(e.scrollOffset)}
       ref={(refInstance) =>
-        setMenuListRef(refInstance as FixedSizeList<HTMLElement>)
+        setMenuListRef(refInstance as FixedSizeList<unknown>)
       }
+      scrollOffset={scrollOffset}
+      stickyHeadings={stickyHeadings}
       width="100%"
     >
-      {({ index, style }) => (
-        <div style={style} key={index}>
-          {childArray[index]}
-        </div>
-      )}
-    </FixedSizedListWithStyles>
+      {({ index, style }) => {
+        return (
+          <VirtualRow key={index} style={style}>
+            {childArray[index]}
+          </VirtualRow>
+        );
+      }}
+    </StickyHeadingsList>
   );
 }
 
@@ -252,36 +414,33 @@ export function GroupHeading<
     }
 
     return (
-      <MultiGroupHeading
-        disabled={showSelected}
-        onClick={() => {
-          if (!allGroupOptionsSelected) {
-            onChange([...currentValue, ...selectableGroupOptions], {
-              action: "select-option",
-              name: "undefined",
-              option: undefined,
-            });
-            return;
-          }
+      <StyledGroupHeading>
+        <button
+          disabled={showSelected}
+          onClick={() => {
+            if (!allGroupOptionsSelected) {
+              onChange([...currentValue, ...selectableGroupOptions], {
+                action: "select-option",
+                name: "undefined",
+                option: undefined,
+              });
+              return;
+            }
 
-          onChange(
-            currentValue.filter((option) => !data.options.includes(option)),
-            { action: "deselect-option", name: undefined, option: undefined }
-          );
-        }}
-      >
-        <span>{groupCheckboxState()}</span>
-        {data.label}
-      </MultiGroupHeading>
+            onChange(
+              currentValue.filter((option) => !data.options.includes(option)),
+              { action: "deselect-option", name: undefined, option: undefined }
+            );
+          }}
+        >
+          <span>{groupCheckboxState()}</span>
+          {data.label}
+        </button>
+      </StyledGroupHeading>
     );
   }
 
-  return (
-    <SingleGroupHeading>
-      {data.label}
-      <hr />
-    </SingleGroupHeading>
-  );
+  return <StyledGroupHeading>{data.label}</StyledGroupHeading>;
 }
 
 export function ValueContainer<
@@ -305,7 +464,7 @@ const OptionCheckbox = styled.input`
   margin-right: 8px;
 `;
 
-const SingleGroupHeading = styled.div`
+const StyledGroupHeading = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -315,16 +474,13 @@ const SingleGroupHeading = styled.div`
   line-height: 1;
   white-space: nowrap;
 
-  & hr {
+  &::after {
+    content: "";
     height: 0;
     width: 100%;
-    border-width: 0 0 1px 0;
-    border-style: solid;
-    border-color: gray;
+    border-bottom: 1px solid gray;
   }
 `;
-
-const MultiGroupHeading = styled.button``;
 
 const FixedSizedListWithStyles = styled(FixedSizeList)`
   margin: 8px 0;
