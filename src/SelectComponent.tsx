@@ -240,15 +240,14 @@ const virtualInnerElement = forwardRef(
     return (
       <div ref={ref} {...rest}>
         {indices.map((index, idx) => {
-          const topWithOffset = index * OPTION_HEIGHT - scrollOffset;
-
-          const finalTopOffset = topWithOffset < 0 ? 0 : topWithOffset;
+          const absoluteOffset = index * OPTION_HEIGHT;
+          const offsetFromTop = index * OPTION_HEIGHT - scrollOffset;
 
           const finalStyles = (): CSSProperties => {
-            if (finalTopOffset > 0) {
+            if (offsetFromTop > 0) {
               return {
                 position: "absolute",
-                top: index * OPTION_HEIGHT,
+                top: absoluteOffset,
                 left: 0,
                 height: OPTION_HEIGHT,
                 width: "100%",
