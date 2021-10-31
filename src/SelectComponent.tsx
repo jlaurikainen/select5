@@ -1,14 +1,15 @@
 import React, {
   Children,
+  ComponentType,
   createContext,
-  ReactChild,
-  useContext,
-  useEffect,
   CSSProperties,
-  useMemo,
-  useState,
   FC,
   forwardRef,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
 } from "react";
 import {
   components,
@@ -154,29 +155,39 @@ export function Menu<
   );
 }
 
-const ListItemWrapper = ({ data, index, style }: any) => {
+interface ListItemWrapperProps {
+  data: {
+    RenderComponent: ComponentType<ListChildComponentProps>;
+    headingIndices: number[];
+  };
+  index: number;
+  style: CSSProperties;
+}
+
+function ListItemWrapper({ data, index, style }: ListItemWrapperProps) {
   const { RenderComponent, headingIndices } = data;
 
   if (headingIndices && headingIndices.includes(index)) {
     return null;
   }
 
-  return <RenderComponent index={index} style={style} />;
-};
+  return <RenderComponent index={index} data={{}} style={style} />;
+}
 
 interface VirtualRowProps {
+  children: ReactNode;
   style: CSSProperties;
 }
 
-const VirtualRow: FC<VirtualRowProps> = ({ children, style }) => {
+function VirtualRow({ children, style }: VirtualRowProps) {
   return <div style={style}>{children}</div>;
-};
+}
 
 interface StickyHeadingContextProps {
-  RenderComponent: React.ComponentType<ListChildComponentProps<HTMLDivElement>>;
+  RenderComponent: ComponentType<ListChildComponentProps>;
   stickyHeadings: {
     indices: number[];
-    elements: React.ReactNode[];
+    elements: ReactNode[];
   };
   scrollOffset: number;
 }
@@ -188,50 +199,45 @@ const StickyHeadingContext = createContext<StickyHeadingContextProps>(
 interface StickyHeadingsListProps {
   stickyHeadings: {
     indices: number[];
-    elements: React.ReactNode[];
+    elements: ReactNode[];
   };
   scrollOffset: number;
 }
 
-const StickyHeadingsList = forwardRef(
-  (
-    {
-      children,
-      scrollOffset,
-      stickyHeadings,
-      ...rest
-    }: FixedSizeListProps & StickyHeadingsListProps,
-    ref: React.Ref<FixedSizeList<unknown>>
-  ) => {
-    return (
-      <StickyHeadingContext.Provider
-        value={{
-          RenderComponent: children,
-          stickyHeadings,
-          scrollOffset,
-        }}
-      >
-        <FixedSizedListWithStyles ref={ref} {...rest}>
-          {({ index, style }) => {
-            return (
-              <ListItemWrapper
-                data={{
-                  RenderComponent: children,
-                  headingIndices: stickyHeadings.indices,
-                }}
-                index={index}
-                style={style}
-              />
-            );
-          }}
-        </FixedSizedListWithStyles>
-      </StickyHeadingContext.Provider>
-    );
-  }
-);
+const StickyHeadingsList = forwardRef<
+  FixedSizeList<unknown>,
+  FixedSizeListProps & StickyHeadingsListProps
+>((props, ref) => {
+  const { children, scrollOffset, stickyHeadings, ...rest } = props;
 
-const virtualInnerElement = forwardRef(
-  ({ children, ...rest }: any, ref: React.Ref<HTMLDivElement>) => {
+  return (
+    <StickyHeadingContext.Provider
+      value={{
+        RenderComponent: children,
+        stickyHeadings,
+        scrollOffset,
+      }}
+    >
+      <FixedSizedListWithStyles ref={ref} {...rest}>
+        {({ index, style }) => {
+          return (
+            <ListItemWrapper
+              data={{
+                RenderComponent: children,
+                headingIndices: stickyHeadings.indices,
+              }}
+              index={index}
+              style={style}
+            />
+          );
+        }}
+      </FixedSizedListWithStyles>
+    </StickyHeadingContext.Provider>
+  );
+});
+
+const VirtualInnerElement = forwardRef<HTMLDivElement, FC>(
+  ({ children, ...rest }, ref) => {
     const {
       stickyHeadings: { indices, elements },
       scrollOffset,
@@ -321,7 +327,7 @@ export function MenuList<
   const stickyHeadings = useMemo(() => {
     const headings: {
       indices: number[];
-      elements: React.ReactNode[];
+      elements: ReactNode[];
     } = {
       indices: [],
       elements: [],
@@ -353,7 +359,7 @@ export function MenuList<
           ? maxHeight - (maxHeight % OPTION_HEIGHT)
           : childArray.length * OPTION_HEIGHT
       }
-      innerElementType={virtualInnerElement}
+      innerElementType={VirtualInnerElement}
       itemCount={childArray.length}
       itemSize={OPTION_HEIGHT}
       onScroll={(e) => setScrollOffset(e.scrollOffset)}
