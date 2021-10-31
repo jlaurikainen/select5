@@ -7,32 +7,34 @@ import {
 } from "react";
 import { ListChildComponentProps } from "react-window";
 
+type RenderComponentType = ComponentType<ListChildComponentProps>;
+
 interface StickyHeadingsProps {
-  indices: number[];
   elements: ReactNode[];
+  indices: number[];
 }
 
 export interface SelectContextProps {
-  showSelected: boolean;
   setShowSelected: Dispatch<SetStateAction<boolean>>;
+  showSelected: boolean;
 }
 
 export interface StickyHeadingContextProps extends StickyHeadingsListProps {
-  RenderComponent: ComponentType<ListChildComponentProps>;
+  RenderComponent: RenderComponentType;
 }
 
 export interface ListItemWrapperProps {
   data: {
-    RenderComponent: ComponentType<ListChildComponentProps>;
     headingIndices: number[];
+    RenderComponent: RenderComponentType;
   };
   index: number;
   style: CSSProperties;
 }
 
 export interface StickyHeadingsListProps {
-  stickyHeadings: StickyHeadingsProps;
   scrollOffset: number;
+  stickyHeadings: StickyHeadingsProps;
 }
 
 export interface VirtualRowProps {

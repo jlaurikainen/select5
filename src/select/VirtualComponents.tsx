@@ -19,8 +19,8 @@ export const StickyHeadingsList = forwardRef<
     <StickyHeadingContext.Provider
       value={{
         RenderComponent: children,
-        stickyHeadings,
         scrollOffset,
+        stickyHeadings,
       }}
     >
       <FixedSizedListWithStyles ref={ref} {...rest}>
@@ -28,8 +28,8 @@ export const StickyHeadingsList = forwardRef<
           return (
             <ListItemWrapper
               data={{
-                RenderComponent: children,
                 headingIndices: stickyHeadings.indices,
+                RenderComponent: children,
               }}
               index={index}
               style={style}
@@ -42,13 +42,13 @@ export const StickyHeadingsList = forwardRef<
 });
 
 export function ListItemWrapper({ data, index, style }: ListItemWrapperProps) {
-  const { RenderComponent, headingIndices } = data;
+  const { headingIndices, RenderComponent } = data;
 
   if (headingIndices && headingIndices.includes(index)) {
     return null;
   }
 
-  return <RenderComponent index={index} data={{}} style={style} />;
+  return <RenderComponent index={index} data={data} style={style} />;
 }
 
 export function VirtualRow({ children, style }: VirtualRowProps) {
@@ -58,7 +58,7 @@ export function VirtualRow({ children, style }: VirtualRowProps) {
 export const VirtualInnerElement = forwardRef<HTMLDivElement, FC>(
   ({ children, ...rest }, ref) => {
     const {
-      stickyHeadings: { indices, elements },
+      stickyHeadings: { elements, indices },
       scrollOffset,
     } = useContext(StickyHeadingContext);
 

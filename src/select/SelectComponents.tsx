@@ -158,17 +158,17 @@ export function MenuList<
 
   const stickyHeadings = useMemo(() => {
     const headings: {
-      indices: number[];
       elements: ReactNode[];
+      indices: number[];
     } = {
-      indices: [],
       elements: [],
+      indices: [],
     };
 
     childArray.forEach((child) => {
       if ((child as JSX.Element).type === GroupHeading) {
-        headings.indices.push(childArray.indexOf(child));
         headings.elements.push(child);
+        headings.indices.push(childArray.indexOf(child));
       }
     });
 
@@ -258,7 +258,7 @@ export function GroupHeading<
             if (!allGroupOptionsSelected) {
               onChange([...currentValue, ...selectableGroupOptions], {
                 action: "select-option",
-                name: "undefined",
+                name: undefined,
                 option: undefined,
               });
               return;

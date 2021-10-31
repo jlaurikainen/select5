@@ -16,7 +16,7 @@ import {
   MenuList,
   Option,
   ValueContainer,
-} from "./SelectComponent";
+} from "./SelectComponents";
 
 export const OPTION_HEIGHT = 32;
 
