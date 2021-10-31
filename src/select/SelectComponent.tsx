@@ -1,10 +1,5 @@
 import React, {
   Children,
-  ComponentType,
-  createContext,
-  CSSProperties,
-  FC,
-  forwardRef,
   ReactNode,
   useContext,
   useEffect,
@@ -21,66 +16,33 @@ import {
   OptionProps,
   ValueContainerProps,
 } from "react-select";
-import {
-  FixedSizeList,
-  FixedSizeListProps,
-  ListChildComponentProps,
-} from "react-window";
-import styled from "styled-components";
-import { OPTION_HEIGHT, SelectContext } from "./Select";
+import { FixedSizeList } from "react-window";
+import { SelectContext } from "./contexts";
+import { OPTION_HEIGHT } from "./Select";
 import {
   areOptionsGrouped,
   filterSelectableOptions,
   reduceOptionGroups,
 } from "./selectUtils";
+import { OptionCheckbox, StyledGroupHeading } from "./styles";
+import {
+  StickyHeadingsList,
+  VirtualInnerElement,
+  VirtualRow,
+} from "./VirtualComponents";
 
-export function Option<
+export function ValueContainer<
   Option,
   IsMulti extends boolean = boolean,
   Group extends GroupBase<Option> = GroupBase<Option>
->(props: OptionProps<Option, IsMulti, Group>) {
-  const selectedOptions = props.getValue();
-
-  if (props.isMulti) {
-    return (
-      <components.Option {...props}>
-        <OptionCheckbox
-          aria-checked={props.isSelected}
-          aria-label={props.label}
-          checked={props.isSelected}
-          disabled={props.isDisabled}
-          onChange={() => {
-            if (props.isSelected) {
-              props.setValue(
-                selectedOptions.filter(
-                  (option) => option !== props.data
-                ) as unknown as OnChangeValue<Option, IsMulti>,
-                "deselect-option",
-                props.data
-              );
-            }
-
-            props.setValue(
-              [...selectedOptions, props.data] as unknown as OnChangeValue<
-                Option,
-                IsMulti
-              >,
-              "deselect-option",
-              props.data
-            );
-          }}
-          type="checkbox"
-        />
-        {props.label}
-      </components.Option>
-    );
-  }
+>(props: ValueContainerProps<Option, IsMulti, Group>) {
+  const selectedCount = props.getValue().length;
 
   return (
-    <components.Option {...props}>
-      {props.isSelected && "V "}
+    <components.ValueContainer {...props}>
+      {selectedCount > 0 && props.isMulti && `${selectedCount} selected`}
       {props.children}
-    </components.Option>
+    </components.ValueContainer>
   );
 }
 
@@ -154,136 +116,6 @@ export function Menu<
     </components.Menu>
   );
 }
-
-interface ListItemWrapperProps {
-  data: {
-    RenderComponent: ComponentType<ListChildComponentProps>;
-    headingIndices: number[];
-  };
-  index: number;
-  style: CSSProperties;
-}
-
-function ListItemWrapper({ data, index, style }: ListItemWrapperProps) {
-  const { RenderComponent, headingIndices } = data;
-
-  if (headingIndices && headingIndices.includes(index)) {
-    return null;
-  }
-
-  return <RenderComponent index={index} data={{}} style={style} />;
-}
-
-interface VirtualRowProps {
-  children: ReactNode;
-  style: CSSProperties;
-}
-
-function VirtualRow({ children, style }: VirtualRowProps) {
-  return <div style={style}>{children}</div>;
-}
-
-interface StickyHeadingContextProps {
-  RenderComponent: ComponentType<ListChildComponentProps>;
-  stickyHeadings: {
-    indices: number[];
-    elements: ReactNode[];
-  };
-  scrollOffset: number;
-}
-
-const StickyHeadingContext = createContext<StickyHeadingContextProps>(
-  {} as StickyHeadingContextProps
-);
-
-interface StickyHeadingsListProps {
-  stickyHeadings: {
-    indices: number[];
-    elements: ReactNode[];
-  };
-  scrollOffset: number;
-}
-
-const StickyHeadingsList = forwardRef<
-  FixedSizeList<unknown>,
-  FixedSizeListProps & StickyHeadingsListProps
->((props, ref) => {
-  const { children, scrollOffset, stickyHeadings, ...rest } = props;
-
-  return (
-    <StickyHeadingContext.Provider
-      value={{
-        RenderComponent: children,
-        stickyHeadings,
-        scrollOffset,
-      }}
-    >
-      <FixedSizedListWithStyles ref={ref} {...rest}>
-        {({ index, style }) => {
-          return (
-            <ListItemWrapper
-              data={{
-                RenderComponent: children,
-                headingIndices: stickyHeadings.indices,
-              }}
-              index={index}
-              style={style}
-            />
-          );
-        }}
-      </FixedSizedListWithStyles>
-    </StickyHeadingContext.Provider>
-  );
-});
-
-const VirtualInnerElement = forwardRef<HTMLDivElement, FC>(
-  ({ children, ...rest }, ref) => {
-    const {
-      stickyHeadings: { indices, elements },
-      scrollOffset,
-    } = useContext(StickyHeadingContext);
-
-    return (
-      <div ref={ref} {...rest}>
-        {indices.map((index, idx) => {
-          const absoluteOffset = index * OPTION_HEIGHT;
-          const offsetFromTop = index * OPTION_HEIGHT - scrollOffset;
-
-          const finalStyles = (): CSSProperties => {
-            if (offsetFromTop > 0) {
-              return {
-                position: "absolute",
-                top: absoluteOffset,
-                left: 0,
-                height: OPTION_HEIGHT,
-                width: "100%",
-                backgroundColor: "white",
-                zIndex: 2,
-              };
-            }
-
-            return {
-              position: "sticky",
-              top: 0,
-              left: 0,
-              height: OPTION_HEIGHT,
-              width: "100%",
-              backgroundColor: "white",
-              zIndex: 2,
-            };
-          };
-
-          return (
-            <VirtualRow key={index} style={finalStyles()}>
-              {elements[idx]}
-            </VirtualRow>
-          );
-        })}
-        {children}
-      </div>
-    );
-  }
-);
 
 export function MenuList<
   Option,
@@ -448,45 +280,52 @@ export function GroupHeading<
   return <StyledGroupHeading>{data.label}</StyledGroupHeading>;
 }
 
-export function ValueContainer<
+export function Option<
   Option,
   IsMulti extends boolean = boolean,
   Group extends GroupBase<Option> = GroupBase<Option>
->(props: ValueContainerProps<Option, IsMulti, Group>) {
-  const selectedCount = props.getValue().length;
+>(props: OptionProps<Option, IsMulti, Group>) {
+  const selectedOptions = props.getValue();
+
+  if (props.isMulti) {
+    return (
+      <components.Option {...props}>
+        <OptionCheckbox
+          aria-checked={props.isSelected}
+          aria-label={props.label}
+          checked={props.isSelected}
+          disabled={props.isDisabled}
+          onChange={() => {
+            if (props.isSelected) {
+              props.setValue(
+                selectedOptions.filter(
+                  (option) => option !== props.data
+                ) as unknown as OnChangeValue<Option, IsMulti>,
+                "deselect-option",
+                props.data
+              );
+            }
+
+            props.setValue(
+              [...selectedOptions, props.data] as unknown as OnChangeValue<
+                Option,
+                IsMulti
+              >,
+              "deselect-option",
+              props.data
+            );
+          }}
+          type="checkbox"
+        />
+        {props.label}
+      </components.Option>
+    );
+  }
 
   return (
-    <components.ValueContainer {...props}>
-      {selectedCount > 0 && props.isMulti && `${selectedCount} selected`}
+    <components.Option {...props}>
+      {props.isSelected && "V "}
       {props.children}
-    </components.ValueContainer>
+    </components.Option>
   );
 }
-
-const OptionCheckbox = styled.input`
-  padding: 0;
-  margin: 0;
-  margin-right: 8px;
-`;
-
-const StyledGroupHeading = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 16px;
-  height: 100%;
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
-
-  &::after {
-    content: "";
-    height: 0;
-    width: 100%;
-    border-bottom: 1px solid gray;
-  }
-`;
-
-const FixedSizedListWithStyles = styled(FixedSizeList)`
-  margin: 8px 0;
-`;

@@ -1,5 +1,5 @@
 import faker from "faker/locale/en_GB";
-import Select from "./Select";
+import Select from "./select/Select";
 
 const options = new Array(50)
   .fill(true)

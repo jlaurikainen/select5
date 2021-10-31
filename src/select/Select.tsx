@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  Dispatch,
-  SetStateAction,
-  useState,
-} from "react";
+import React, { useState } from "react";
 import BaseSelect, {
   ActionMeta,
   GroupBase,
@@ -14,6 +9,7 @@ import BaseSelect, {
   Theme,
 } from "react-select";
 import { FilterOptionOption } from "react-select/dist/declarations/src/filters";
+import { SelectContext } from "./contexts";
 import {
   GroupHeading,
   Menu,
@@ -23,15 +19,6 @@ import {
 } from "./SelectComponent";
 
 export const OPTION_HEIGHT = 32;
-
-interface SelectContextState {
-  showSelected: boolean;
-  setShowSelected: Dispatch<SetStateAction<boolean>>;
-}
-
-export const SelectContext = createContext<SelectContextState>(
-  {} as SelectContextState
-);
 
 function Select<
   Option,
