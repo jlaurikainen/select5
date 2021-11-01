@@ -9,14 +9,14 @@ export interface StickyHeadingsProps {
   indices: number[];
 }
 
-export interface StickyHeadingsListProps {
+export interface VirtualMenuListProps {
   scrollOffset: number;
   stickyHeadings: StickyHeadingsProps;
 }
 
 const VirtualMenuList = React.forwardRef<
   FixedSizeList<unknown>,
-  FixedSizeListProps & StickyHeadingsListProps
+  FixedSizeListProps & VirtualMenuListProps
 >((props, ref) => {
   const { children, scrollOffset, stickyHeadings, ...rest } = props;
 

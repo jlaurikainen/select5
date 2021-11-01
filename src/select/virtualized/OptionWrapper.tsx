@@ -1,7 +1,7 @@
 import React from "react";
 import { RenderComponentType } from "../types";
 
-export interface ListItemWrapperProps {
+export interface OptionWrapperProps {
   data: {
     headingIndices: number[];
     RenderComponent: RenderComponentType;
@@ -10,7 +10,7 @@ export interface ListItemWrapperProps {
   style: React.CSSProperties;
 }
 
-function OptionWrapper({ data, index, style }: ListItemWrapperProps) {
+function OptionWrapper({ data, index, style }: OptionWrapperProps) {
   const { headingIndices, RenderComponent } = data;
 
   if (headingIndices && headingIndices.includes(index)) {
