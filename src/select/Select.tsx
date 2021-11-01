@@ -16,7 +16,7 @@ import {
   MenuList,
   Option,
   ValueContainer,
-} from "./SelectComponents";
+} from "./overrides";
 
 export const OPTION_HEIGHT = 32;
 
