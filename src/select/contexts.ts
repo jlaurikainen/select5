@@ -3,6 +3,7 @@ import { RenderComponentType } from "./types";
 import { VirtualMenuListProps } from "./virtualized/VirtualMenuList";
 
 export interface SelectContextProps {
+  setMenuRef: Dispatch<SetStateAction<HTMLDivElement | null>>;
   setShowSelected: Dispatch<SetStateAction<boolean>>;
   showSelected: boolean;
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { components, GroupBase, MenuProps, OnChangeValue } from "react-select";
 import { SelectContext } from "../contexts";
 import {
@@ -14,7 +14,8 @@ export function Menu<
 >(props: MenuProps<Option, IsMulti, Group>) {
   const currentValue = props.getValue();
 
-  const { showSelected, setShowSelected } = React.useContext(SelectContext);
+  const { setMenuRef, showSelected, setShowSelected } =
+    React.useContext(SelectContext);
 
   const allBaseOptions = areOptionsGrouped(props.options)
     ? reduceOptionGroups(props.options as Group[])
@@ -59,8 +60,16 @@ export function Menu<
     setShowSelected(!showSelected);
   }
 
+  const handleRef = useCallback(
+    (menuRef: HTMLDivElement | null) => {
+      setMenuRef(menuRef);
+      props.innerRef(menuRef);
+    },
+    [props.innerRef]
+  );
+
   return (
-    <components.Menu {...props}>
+    <components.Menu {...props} innerRef={handleRef}>
       {props.isMulti && (
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <button disabled={showSelected} onClick={selectAllHandler}>

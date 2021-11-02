@@ -23,11 +23,7 @@ const groups = [
 ];
 
 function App() {
-  return (
-    <>
-      <Select options={groups} isMulti={true} />
-    </>
-  );
+  return <Select options={groups} isMulti={true} />;
 }
 
 export default App;

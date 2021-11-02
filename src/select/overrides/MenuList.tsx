@@ -1,7 +1,7 @@
 import React, { Children, useMemo, useState } from "react";
 import { GroupBase, MenuListProps } from "react-select";
 import { FixedSizeList } from "react-window";
-import { OPTION_HEIGHT } from "../Select";
+import { OPTION_HEIGHT } from "../styles";
 import { areOptionsGrouped } from "../utils";
 import {
   VirtualInnerElement,

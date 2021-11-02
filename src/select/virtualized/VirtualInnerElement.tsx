@@ -1,6 +1,6 @@
 import React from "react";
 import { StickyHeadingContext } from "../contexts";
-import { OPTION_HEIGHT } from "../Select";
+import { OPTION_HEIGHT } from "../styles";
 import VirtualOption from "./VirtualOption";
 
 export const VirtualInnerElement = React.forwardRef<HTMLDivElement, React.FC>(

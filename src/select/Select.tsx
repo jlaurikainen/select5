@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import BaseSelect, {
   ActionMeta,
   GroupBase,
@@ -6,7 +6,6 @@ import BaseSelect, {
   MultiValue,
   OnChangeValue,
   Props,
-  Theme,
 } from "react-select";
 import { FilterOptionOption } from "react-select/dist/declarations/src/filters";
 import { SelectContext } from "./contexts";
@@ -18,8 +17,6 @@ import {
   ValueContainer,
 } from "./overrides";
 
-export const OPTION_HEIGHT = 32;
-
 function Select<
   Option,
   IsMulti extends boolean = false,
@@ -28,6 +25,7 @@ function Select<
   const [inputValue, setInputValue] = useState("");
   const [internalValue, setInternalValue] =
     useState<OnChangeValue<Option, IsMulti>>();
+  const [menuRef, setMenuRef] = useState<HTMLDivElement | null>(null);
   const [showSelected, setShowSelected] = useState(false);
 
   function handleChange(
@@ -57,8 +55,22 @@ function Select<
     props.onMenuClose?.();
   }
 
+  function handleMenuPlacement() {
+    if (menuRef) {
+      const bodyHeight = document.documentElement.clientHeight;
+      const menuBottom = menuRef.getBoundingClientRect().bottom;
+      const windowHeight = window.innerHeight;
+
+      return menuBottom > (windowHeight || bodyHeight) ? "top" : "bottom";
+    }
+
+    return "auto";
+  }
+
   return (
-    <SelectContext.Provider value={{ showSelected, setShowSelected }}>
+    <SelectContext.Provider
+      value={{ setMenuRef, showSelected, setShowSelected }}
+    >
       <BaseSelect
         {...props}
         backspaceRemovesValue={false}
@@ -76,30 +88,23 @@ function Select<
         filterOption={handleFilter}
         hideSelectedOptions={props.hideSelectedOptions ?? false}
         inputValue={inputValue}
+        menuPlacement={handleMenuPlacement()}
+        menuPortalTarget={document.body}
+        menuShouldScrollIntoView={false}
         onInputChange={handleInput}
         onChange={handleChange}
         onMenuClose={handleMenuClose}
         styles={{
-          indicatorsContainer: (provided) => ({
-            ...provided,
-            height: OPTION_HEIGHT,
-          }),
-          option: (provided) => ({
-            ...provided,
-            display: "flex",
-            alignItems: "center",
-            height: OPTION_HEIGHT,
-          }),
           ...props.styles,
-        }}
-        theme={(theme: Theme) => ({
-          ...theme,
-          spacing: {
-            ...theme.spacing,
-            controlHeight: OPTION_HEIGHT,
+          menu: (provided, state) => {
+            return {
+              ...provided,
+              top: state.menuPlacement === "top" ? "unset" : "100%",
+              bottom: state.menuPlacement === "top" ? "100%" : "unset",
+              ...props.styles?.menu,
+            };
           },
-          ...props.theme,
-        })}
+        }}
       />
     </SelectContext.Provider>
   );

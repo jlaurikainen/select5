@@ -1,6 +1,8 @@
 import { FixedSizeList } from "react-window";
 import styled from "styled-components";
 
+export const OPTION_HEIGHT = 32;
+
 export const OptionCheckbox = styled.input`
   padding: 0;
   margin: 0;
@@ -11,7 +13,6 @@ export const StyledGroupHeading = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 16px;
   height: 100%;
   font-weight: 600;
   line-height: 1;
