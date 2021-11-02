@@ -1,10 +1,10 @@
-import React from "react";
-import { RenderComponentType } from "../types";
+import React, { ComponentType } from "react";
+import { ListChildComponentProps } from "react-window";
 
 export interface OptionWrapperProps {
   data: {
     headingIndices: number[];
-    RenderComponent: RenderComponentType;
+    RenderComponent: ComponentType<ListChildComponentProps>;
   };
   index: number;
   style: React.CSSProperties;

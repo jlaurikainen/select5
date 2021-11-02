@@ -1,5 +1,5 @@
-import { createContext, Dispatch, SetStateAction } from "react";
-import { RenderComponentType } from "./types";
+import { ComponentType, createContext, Dispatch, SetStateAction } from "react";
+import { ListChildComponentProps } from "react-window";
 import { VirtualMenuListProps } from "./virtualized/VirtualMenuList";
 
 export interface SelectContextProps {
@@ -13,7 +13,7 @@ export const SelectContext = createContext<SelectContextProps>(
 );
 
 export interface StickyHeadingContextProps extends VirtualMenuListProps {
-  RenderComponent: RenderComponentType;
+  RenderComponent: ComponentType<ListChildComponentProps>;
 }
 
 export const StickyHeadingContext = createContext<StickyHeadingContextProps>(

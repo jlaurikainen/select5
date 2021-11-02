@@ -105,6 +105,7 @@ function Select<
             };
           },
         }}
+        tabSelectsValue={false}
       />
     </SelectContext.Provider>
   );
